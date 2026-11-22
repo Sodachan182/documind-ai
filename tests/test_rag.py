@@ -160,7 +160,7 @@ def test_generation_error_is_reported_safely(app: DocuMindApp, sample_pdf: bytes
     class Failing:
         model = "failing"
 
-        def generate(self, *a):
+        def generate(self, *a, **kw):
             raise GenerationError("Gemini generation failed: rate limit or quota exceeded.")
 
     answer = _rag(app, Failing()).ask("annual leave?", [doc_id])

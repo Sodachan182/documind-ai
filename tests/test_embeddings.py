@@ -101,5 +101,5 @@ def test_gemini_embedder_check() -> None:
             raise FakeAPIError(404)
 
     emb = _embedder(Models(dim=4))
-    with pytest.raises(EmbeddingError, match="model was not found"):
+    with pytest.raises(EmbeddingError, match="model is not available"):
         emb.check()

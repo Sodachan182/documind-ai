@@ -5,16 +5,26 @@ from __future__ import annotations
 import logging
 import re
 
-# Google API keys start with "AIza"; also redact obvious key=value pairs.
-_SECRET_PATTERNS = [
+# Google keys start with "AIza"; ShopAIKey / OpenAI-style keys start with "sk-".
+_TOKEN_PATTERNS = [
     re.compile(r"AIza[0-9A-Za-z_\-]{20,}"),
-    re.compile(r"(?i)(api[_-]?key\s*[=:]\s*)([^\s,;]+)"),
+    re.compile(r"\bsk-[0-9A-Za-z_\-]{16,}"),
+]
+# Values after key-like labels: api_key=..., Bearer ..., ?key=..., x-api-key: ...
+_PAIR_PATTERNS = [
+    re.compile(r"(?i)(api[_-]?key\s*[=:]\s*)([^\s,;&\"']+)"),
+    re.compile(r"(?i)(bearer\s+)([^\s,;\"']+)"),
+    re.compile(r"(?i)([?&]key=)([^\s&\"']+)"),
+    re.compile(r"(?i)(x-(?:api|goog-api)-key[\"']?\s*[:=]\s*[\"']?)([^\s,;\"']+)"),
 ]
 
 
 def redact(text: str) -> str:
-    text = _SECRET_PATTERNS[0].sub("[REDACTED]", text)
-    return _SECRET_PATTERNS[1].sub(r"\1[REDACTED]", text)
+    for pattern in _TOKEN_PATTERNS:
+        text = pattern.sub("[REDACTED]", text)
+    for pattern in _PAIR_PATTERNS:
+        text = pattern.sub(r"\1[REDACTED]", text)
+    return text
 
 
 class RedactingFilter(logging.Filter):

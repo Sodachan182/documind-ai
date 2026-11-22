@@ -13,7 +13,7 @@ from docx import Document
 from documind.app_factory import DocuMindApp, build_app
 from documind.config import Settings
 from documind.embeddings.local_embeddings import HashingEmbedder
-from documind.llm.gemini_client import GeneratedAnswer
+from documind.llm.base import GeneratedAnswer
 from documind.models import Citation, TokenUsage
 
 DEMO_DIR = Path(__file__).resolve().parents[1] / "demo" / "documents"
@@ -55,14 +55,23 @@ class FakeGenerator:
     """TEST DOUBLE ONLY - returns a scripted answer; never used by the app."""
 
     model = "fake-generator (test double)"
+    provider = "fake"
+    label = "Fake generator (test double)"
 
     def __init__(self, answer: str = "", insufficient: bool = False) -> None:
         self.answer = answer
         self.insufficient = insufficient
         self.calls: list[tuple[str, list[Citation], str]] = []
+        self.histories: list[list] = []
 
-    def generate(self, question: str, sources: Sequence[Citation], language: str) -> GeneratedAnswer:
+    def check(self) -> str:
+        return self.model
+
+    def generate(
+        self, question: str, sources: Sequence[Citation], language: str, history: Sequence = ()
+    ) -> GeneratedAnswer:
         self.calls.append((question, list(sources), language))
+        self.histories.append(list(history))
         return GeneratedAnswer(
             answer=self.answer,
             insufficient_evidence=self.insufficient,

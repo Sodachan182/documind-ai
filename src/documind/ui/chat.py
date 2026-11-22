@@ -113,12 +113,19 @@ def _scope_bar(app: DocuMindApp, searchable: list[str], names: dict[str, str], p
 
 
 def _process(app: DocuMindApp, conv: dict, prompt: str) -> None:
+    # One submission = at most one provider request, even if Streamlit reruns mid-flight.
+    submission = (st.session_state.current_conv, len(conv["messages"]), prompt)
+    if submission in st.session_state.processed:
+        return
+    st.session_state.processed.add(submission)
     scope = list(st.session_state.doc_scope)
     html(f'<div class="dm-user"><div class="dm-bubble">{escape(prompt)}</div></div>')
     n = len(scope)
     try:
         with st.spinner(f"Searching {n} document{'s' if n != 1 else ''}…"):
-            answer = app.rag.ask(prompt, scope, st.session_state.top_k)
+            answer = app.rag.ask(
+                prompt, scope, st.session_state.top_k, history=session.history_for_model(conv["messages"])
+            )
     except QuestionValidationError as exc:
         notice(str(exc), "warn")
         return

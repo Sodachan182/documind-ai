@@ -31,7 +31,7 @@ select and shows the evidence for every answer, so a person can verify it in sec
 | **Document ingestion** | PDF (PyMuPDF) and DOCX (python-docx, including tables), multi-file upload, size/type/signature validation, SHA-256 duplicate detection, scanned-PDF (OCR-needed) detection |
 | **Citation-preserving chunking** | ~900-character paragraph-aware chunks with ~120-character overlap that **never cross a PDF page or DOCX section**, so each chunk maps to one exact location |
 | **Semantic search** | Gemini embeddings (`gemini-embedding-001`, 768-d) stored in a persistent ChromaDB collection with explicit vectors and cosine distance |
-| **Grounded answers** | Gemini generation with structured JSON output, strict grounding rules, explicit *insufficient-evidence* handling and answer language matched to the question (EN/VI) |
+| **Grounded answers** | Gemini directly or the ShopAIKey gateway (OpenAI-, Anthropic- or Gemini-compatible), with JSON output, strict grounding rules, explicit *insufficient-evidence* handling and answer language matched to the question (EN/VI) |
 | **Verifiable citations** | The app assigns IDs `S1…Sn` to retrieved chunks; the answer's citations are validated and any ID the model invents is stripped and reported |
 | **Multi-document analysis** | Select which documents are searched; comparison and conflict questions cite each document separately; unselected documents are never retrieved |
 | **Evaluation** | 20-question labelled set with Recall@k, Hit@k, MRR, source identification, isolation leaks, and optional answer-level checks |
@@ -111,9 +111,9 @@ src/documind/
 ├── config.py                  # env/.env settings (Pydantic); API key excluded from repr
 ├── models.py                  # Chunk, DocumentRecord, Citation, RAGAnswer ...
 ├── document_processing/       # pdf_reader, docx_reader, cleaner, chunker
-├── embeddings/                # Embedder ABC, GeminiEmbedder, offline HashingEmbedder
+├── embeddings/                # Embedder ABC; Gemini, ShopAIKey (opt-in) and offline lexical embedders
 ├── retrieval/                 # VectorStore (ChromaDB), Retriever
-├── llm/                       # prompts (grounding + injection fencing), Gemini client, error mapping
+├── llm/                       # provider interface, Gemini + ShopAIKey adapters, prompts, error mapping
 ├── citations/                 # app-controlled IDs + validation
 ├── services/                  # ingestion, RAG, evaluation, registry
 ├── ui/                        # Streamlit UI: theme, session, sidebar, chat, citations, documents, evaluation, settings
@@ -150,28 +150,53 @@ cp .env.example .env
 streamlit run app.py
 ```
 
-## Gemini configuration
+## AI providers
 
-1. Create a key in [Google AI Studio](https://aistudio.google.com/apikey).
-2. Put it in `.env` (git-ignored):
+Answer generation and embeddings are configured independently ([docs/PROVIDERS.md](docs/PROVIDERS.md)):
+
+| Answer generation (`DOCUMIND_LLM_PROVIDER`) | How |
+|---|---|
+| **Google Gemini** (direct) | `google-genai` SDK, `GEMINI_API_KEY`, `GEMINI_MODEL` |
+| **ShopAIKey, OpenAI-compatible** | `openai` SDK, base `https://api.shopaikey.com/v1` |
+| **ShopAIKey, Anthropic-compatible** | `anthropic` SDK, base `https://api.shopaikey.com` |
+| **ShopAIKey, Gemini-compatible** | `google-genai` SDK with `http_options.base_url` |
+| **Offline** | no model; chat shows retrieved evidence only |
+
+| Embeddings (`DOCUMIND_EMBEDDING_PROVIDER`) | |
+|---|---|
+| **Gemini** | `gemini-embedding-001`, 768-d (default when `GEMINI_API_KEY` is set) |
+| **ShopAIKey** (opt-in) | OpenAI-format `/v1/embeddings`; model and dimension set explicitly |
+| **Offline lexical** | feature hashing, word overlap only, not semantic (default without a key) |
+
+Minimal `.env` for Gemini:
 
 ```env
 GEMINI_API_KEY=your-key
 GEMINI_MODEL=gemini-flash-latest          # alias for the current stable Flash model; pin a version if needed
-GEMINI_EMBEDDING_MODEL=gemini-embedding-001
-GEMINI_EMBEDDING_DIMENSION=768
 ```
 
-All settings are documented in [`.env.example`](.env.example) (top-k, chunk size/overlap, similarity
-threshold, upload limit, timeouts, retries). Model names are configuration, not code.
+Minimal `.env` for ShopAIKey answers (search stays offline or Gemini):
 
-Without a key the app stays usable: you can upload and inspect documents, run retrieval and the offline
-evaluation, and every chat reply is clearly labelled **"Retrieval only · no LLM"**. You can also paste a key in
-the sidebar; it is kept in memory for that browser session only.
+```env
+DOCUMIND_LLM_PROVIDER=shopaikey
+SHOPAIKEY_API_KEY=sk-...
+SHOPAIKEY_PROTOCOL=openai                 # openai | anthropic | gemini
+SHOPAIKEY_MODEL=<exact model id from your key's group>
+```
 
-> **Changing the embedding model or dimension** creates a new vector collection. Existing documents are marked
-> *Needs re-index* and excluded from search until you click **Re-index** — vectors from different models are
-> never compared.
+You can also switch provider, protocol and model in **Settings → Answer generation**, paste a key for the
+session only, load the gateway's model catalog and run **Test connection**. The status changes to
+**Connected** only after a real request succeeds, and auth, balance, model-access and rate-limit failures
+are reported as such. ShopAIKey is a third-party gateway: with it enabled, your question and the retrieved
+excerpts leave this machine.
+
+All settings, including output-token, timeout and retry limits, are documented in
+[`.env.example`](.env.example). Model names are configuration, not code. Without any key the app still
+uploads, indexes, searches and evaluates; chat replies are labelled as retrieval only.
+
+> **Changing the embedding provider, model or dimension** creates a new vector collection. Existing documents
+> are marked *Needs re-index* and excluded from search until you click **Re-index**; vectors from different
+> models are never compared.
 
 ## Using it
 
@@ -232,11 +257,15 @@ scripts\test.ps1            # ruff lint + format check + offline pytest
 scripts\test.ps1 -Live      # also the live Gemini tests (needs GEMINI_API_KEY)
 ```
 
-102 offline tests cover PDF/DOCX extraction, Unicode normalisation, chunk boundaries and metadata, upload
+155 offline tests cover PDF/DOCX extraction, Unicode normalisation, chunk boundaries and metadata, upload
 validation and path traversal, duplicates, deletion, embedding retries/rate limits (fake SDK client), ChromaDB
 filtering and incompatible-model detection, citation mapping and fabricated-citation removal, prompt
 construction and injection escaping, insufficient-evidence handling, missing API keys, the evaluation
-metrics and the UI's citation-rendering helpers (renumbering, escaping, ordering). Live tests are marked `live` and excluded by default. CI runs lint and tests on Ubuntu and Windows.
+metrics, the UI's citation-rendering helpers, and the provider layer: all three ShopAIKey adapters against
+fake SDK clients (request shape, usage parsing, parameter fallback, error states, bounded retries), gateway
+URL safety, key separation and redaction, model discovery, ShopAIKey embeddings and provider switching.
+Live tests (`tests/test_live_gemini.py`, `tests/test_live_shopaikey.py`) are marked `live`, skipped without
+keys and excluded by default. CI runs lint and tests on Ubuntu and Windows.
 
 ## Security
 
@@ -245,7 +274,8 @@ escaped, and the system prompt tells the model to ignore instructions inside the
 extension *and* signature, size-limited, processed in memory (never written to disk), and filenames are
 sanitised against path traversal and Windows device names. Keys live in `.env` / Streamlit secrets, are
 excluded from `repr` and redacted from logs. Retrieval is filtered by document ID in ChromaDB *and* re-checked in
-Python. Details and limits: [docs/SECURITY.md](docs/SECURITY.md).
+Python. The ShopAIKey key is only ever sent to the configured HTTPS gateway (official vendor hosts are
+refused). Details and limits: [docs/SECURITY.md](docs/SECURITY.md).
 
 ## Project skills
 
@@ -276,7 +306,8 @@ No public deployment is maintained for this repository.
 - Grounding and citation validation reduce, but cannot eliminate, model errors. A valid citation proves the
   source exists, not that the sentence faithfully paraphrases it.
 - Heading detection in DOCX relies on Word heading styles.
-- Gemini answer quality has not been benchmarked in this repository yet.
+- Gemini and ShopAIKey answer quality has not been benchmarked in this repository yet, and the ShopAIKey
+  adapters have only been tested against fake SDK clients. No live ShopAIKey request has been made yet.
 
 ## Roadmap
 

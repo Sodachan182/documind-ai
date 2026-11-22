@@ -11,7 +11,7 @@ A public Streamlit app is reachable by anyone with the URL. Decide on these firs
 
 1. **Isolation** — set `DOCUMIND_SESSION_ISOLATION=true`. Each browser session then gets its own temporary
    knowledge base, so visitors cannot see each other's documents. Without it, every visitor shares one store.
-2. **API key** — if you put your `GEMINI_API_KEY` in secrets, every visitor spends your quota and your key's
+2. **API key** — if you put your `GEMINI_API_KEY` or `SHOPAIKEY_API_KEY` in secrets, every visitor spends your quota and your key's
    data terms apply to their uploads. Safer options:
    - leave the key unset — visitors paste their own key in **Settings** (kept in that session's server memory only); or
    - restrict the app to specific viewers in the Streamlit Cloud sharing settings.
@@ -30,6 +30,10 @@ A public Streamlit app is reachable by anyone with the URL. Decide on these firs
    # Optional - see the warning above:
    # GEMINI_API_KEY = "..."
    # GEMINI_MODEL = "gemini-flash-latest"
+   # DOCUMIND_LLM_PROVIDER = "shopaikey"
+   # SHOPAIKEY_API_KEY = "sk-..."
+   # SHOPAIKEY_PROTOCOL = "openai"
+   # SHOPAIKEY_MODEL = "<model id>"
    ```
 
    `app.py` copies these keys from `st.secrets` into environment variables at start-up.

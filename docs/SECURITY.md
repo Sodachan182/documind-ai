@@ -17,8 +17,11 @@ lists the controls that are implemented, and what they do **not** protect agains
 | Cross-document leakage | Chroma `where` filter on selected IDs **plus** a Python re-check of every returned chunk; empty selection searches nothing | `vector_store.query`, `retriever.retrieve` |
 | Stale data after deletion | Delete removes vectors from **every** DocuMind collection, the chunk snapshot and the registry entry | `ingestion_service.delete`, `vector_store.delete_document` |
 | Incompatible vectors | Collections are keyed by embedding model + dimension and verified on open | `vector_store.VectorStore` |
-| Secret exposure | `.env` / `secrets.toml` git-ignored; key excluded from `Settings.__repr__`; log filter redacts `AIza…` keys and `api_key=` pairs; API errors are mapped to fixed messages | `config.py`, `logging_utils.py`, `llm/errors.py` |
+| Secret exposure | `.env` / `secrets.toml` git-ignored; key excluded from `Settings.__repr__`; log filter redacts `AIza…` keys and `api_key=` pairs; API errors are mapped to fixed messages and redacted (`AIza…`, `sk-…`, `Bearer`, `?key=`, `x-api-key`) | `config.py`, `logging_utils.py`, `llm/errors.py` |
 | Raw exception disclosure | Extraction, embedding and generation errors are converted to user-facing messages without stack traces or request details | services, `llm/errors.py` |
+| Gateway key sent to the wrong host | `SHOPAIKEY_BASE_URL` must be HTTPS and may not be `api.openai.com`, `api.anthropic.com` or `*.googleapis.com`; Gemini-direct and ShopAIKey keys are kept in separate fields and never swapped; SDK clients get explicit base URLs, so `OPENAI_BASE_URL`/`ANTHROPIC_*` environment variables cannot redirect them | `llm/shopaikey.py`, `app_factory.py` |
+| Session keys leaking | Keys pasted in Settings live only in that session's server-side state (form cleared on submit), never in the shared cache, disk, logs, URLs, browser storage or exports | `ui/session.py`, `ui/settings.py` |
+| Runaway cost | Output-token cap, request timeout, bounded retries (transient errors only, SDK retries disabled), one request per chat submission, catalog fetched only on click | `config.py`, `llm/*`, `ui/chat.py` |
 | Cross-user access (hosted) | `DOCUMIND_SESSION_ISOLATION=true` gives each browser session its own temporary knowledge base | `app.py` |
 
 Tests covering these controls live in `tests/test_document_service.py`, `tests/test_rag.py`,
@@ -26,6 +29,9 @@ Tests covering these controls live in `tests/test_document_service.py`, `tests/t
 
 ## Limitations — read before using real data
 
+- **ShopAIKey is a third-party gateway.** When it is the answer provider, questions and retrieved excerpts
+  go to ShopAIKey and then to the upstream model vendor, under ShopAIKey's terms. Use Offline or Gemini-direct
+  for documents that must not pass through an intermediary.
 - **Data leaves your machine.** With Gemini enabled, retrieved passages and questions are sent to Google's API
   and are subject to Google's terms for your account tier. Do not upload data you are not allowed to send to a
   third-party processor.

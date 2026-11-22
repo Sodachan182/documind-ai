@@ -39,11 +39,22 @@ flowchart TB
 | `retrieval/vector_store.py` | One Chroma collection per embedding key, `hnsw:space=cosine`, `embedding_function=None` (explicit vectors only). Collection metadata records the key and dimension and is verified on open. |
 | `retrieval/retriever.py` | Embeds the query, searches with a `document_id $in [...]` filter, then re-checks scope, applies `min_similarity`, removes duplicate passages and enforces a context-size budget. |
 | `llm/prompts.py` | System instruction (grounding, citation format, abstention, conflict handling, language, injection rules) and the user prompt that fences each passage in `<source id="S#" document=… location=…>`. Tag-like text inside documents is escaped. |
-| `llm/gemini_client.py` | `generate_content` with `response_mime_type="application/json"` and a Pydantic `response_schema` (`answer`, `insufficient_evidence`), token-usage capture, error mapping. |
+| `llm/base.py` | `AnswerGenerator` protocol (`generate`, `check`, `provider`, `label`), `GeneratedAnswer`, conversation-history preparation (last 4 turns, citation markers stripped). |
+| `llm/openai_compat.py`, `llm/anthropic_compat.py` | ShopAIKey adapters on the official `openai` / `anthropic` SDKs; see [PROVIDERS.md](PROVIDERS.md). |
+| `llm/shopaikey.py` | Gateway URL validation, per-protocol base URLs, model catalog, adapter factory. |
+| `llm/structured.py` | Lenient JSON answer parsing (bare, fenced, embedded) for providers without enforced JSON output. |
+| `llm/gemini_client.py` | Gemini direct and ShopAIKey Gemini-compatible: `generate_content` with `response_mime_type="application/json"` and a Pydantic `response_schema` (`answer`, `insufficient_evidence`), token-usage capture, error mapping. |
 | `citations/citation_manager.py` | Assigns `S1..Sn` in rank order; parses `[S1]`, `[S1, S3]`, `[s2]`, `【S1】`; keeps known IDs, strips unknown ones and reports them. |
 | `services/ingestion_service.py` | validate → duplicate check → extract → OCR check → chunk → embed in batches → upsert → snapshot → registry. A failed embedding removes any partial vectors. Also delete and re-index. |
 | `services/rag_service.py` | Question validation, language detection, no-documents / no-results / retrieval-only / generated / error modes, citation validation and warnings. |
 | `services/evaluation_service.py` | Labelled-set evaluation (see [EVALUATION.md](EVALUATION.md)). |
+
+## Providers
+
+Answer generation and embeddings are independent. The vector store and retriever are built once per
+knowledge base from server configuration. Each browser session attaches its own generator
+(`app_factory.with_generator`), so switching provider, protocol or model never touches the index.
+Details: [PROVIDERS.md](PROVIDERS.md).
 
 ## Data model and identifiers
 

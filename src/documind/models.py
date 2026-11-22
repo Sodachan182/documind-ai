@@ -142,6 +142,8 @@ class RAGAnswer(BaseModel):
     warnings: list[str] = Field(default_factory=list)
     usage: TokenUsage | None = None
     model: str | None = None
+    provider: str | None = None  # human label of the generator, e.g. "ShopAIKey (OpenAI-compatible)"
+    error_state: str | None = None  # e.g. auth_failed, model_unavailable (mode == "error")
     latency_ms: int | None = None
 
     @property

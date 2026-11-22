@@ -7,8 +7,8 @@ from collections.abc import Sequence
 
 from documind.citations.citation_manager import build_citations, validate_citations
 from documind.embeddings.base import EmbeddingError
+from documind.llm.base import AnswerGenerator, Turn
 from documind.llm.errors import GenerationError
-from documind.llm.gemini_client import AnswerGenerator
 from documind.llm.prompts import INSUFFICIENT_EVIDENCE_MESSAGES, detect_language
 from documind.models import RAGAnswer
 from documind.retrieval.retriever import Retriever
@@ -51,7 +51,18 @@ class RAGService:
             )
         return cleaned
 
-    def ask(self, question: str, document_ids: Sequence[str], top_k: int | None = None) -> RAGAnswer:
+    def ask(
+        self,
+        question: str,
+        document_ids: Sequence[str],
+        top_k: int | None = None,
+        history: Sequence[Turn] = (),
+    ) -> RAGAnswer:
+        """Answer ``question`` from ``document_ids``.
+
+        ``history`` (earlier turns of this conversation) is passed to the model for
+        context only; retrieval and citations always use the current question.
+        """
         started = time.perf_counter()
         q = self.validate_question(question)
         lang = detect_language(q)
@@ -92,9 +103,19 @@ class RAGService:
             )
 
         try:
-            generated = self.generator.generate(q, sources, lang)
+            generated = self.generator.generate(q, sources, lang, history=history)
         except GenerationError as exc:
-            return finish(RAGAnswer(question=q, answer=str(exc), language=lang, mode="error", sources=sources))
+            return finish(
+                RAGAnswer(
+                    question=q,
+                    answer=str(exc),
+                    language=lang,
+                    mode="error",
+                    sources=sources,
+                    error_state=exc.state,
+                    provider=getattr(self.generator, "label", None),
+                )
+            )
 
         check = validate_citations(generated.answer, sources)
         warnings: list[str] = []
@@ -121,5 +142,6 @@ class RAGService:
                 warnings=warnings,
                 usage=generated.usage,
                 model=generated.model,
+                provider=getattr(self.generator, "label", None),
             )
         )

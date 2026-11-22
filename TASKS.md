@@ -48,3 +48,20 @@ Design rules: `.claude/skills/minimalist-chat-ui/SKILL.md`. QA procedure: `.clau
 - [x] Visual QA at 1440×900, 1366×768, 1024×768, 390×844; dark and light; keyboard focus; no horizontal overflow
 - [x] Regression: 102 offline tests, Ruff lint + format
 - [x] README screenshots replaced with real captures
+
+## v1.2 — Multi-provider generation (ShopAIKey)
+
+- [x] Provider interface (`llm/base.py`) shared by Gemini direct and three ShopAIKey adapters
+- [x] ShopAIKey OpenAI-compatible (`openai` SDK, base `/v1`), Anthropic-compatible (`anthropic` SDK, root),
+      Gemini-compatible (`google-genai`, `http_options.base_url`)
+- [x] Independent embedding configuration; optional ShopAIKey embeddings with explicit model and dimension
+- [x] Config reconciled with existing names (legacy aliases kept); gateway URL safety checks
+- [x] Model catalog per protocol (on click), manual model ID, session persistence
+- [x] Error states: not configured, ready, connected, auth failed, insufficient balance, model unavailable,
+      rate limited, service error; bounded retries; one request per submission
+- [x] Settings UI (provider, protocol, key, model, test), sidebar active-model indicator, third-party disclosure
+- [x] Conversation history (last 2 exchanges) passed to every provider; retrieval still per question
+- [x] 53 new offline tests (fake SDK clients); 155 total passing; Ruff clean
+- [ ] **Live ShopAIKey verification**: no key was available. Run `pytest -m live tests/test_live_shopaikey.py`
+      with `SHOPAIKEY_API_KEY` and `SHOPAIKEY_MODEL` set, or use Settings → Test connection
+- [ ] ShopAIKey embeddings: implemented and mock-tested, not verified against a live key; off by default
