@@ -1,0 +1,62 @@
+# DocuMind theme. Dark is the primary design; light is a matching alternative.
+# Users switch with the app menu (top-right ⋮ -> Settings -> Theme). Tokens mirror
+# src/documind/ui/theme.py and .claude/skills/minimalist-chat-ui/SKILL.md.
+
+[theme]
+base = "dark"
+font = "Inter:https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap"
+headingFont = "Inter:https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap"
+codeFont = "monospace"
+baseFontSize = 15
+baseFontWeight = 400
+headingFontSizes = ["1.375rem", "1.125rem", "1rem", "0.9375rem", "0.875rem", "0.8125rem"]
+headingFontWeights = [600, 600, 600, 600, 600, 600]
+baseRadius = "0.5rem"
+buttonRadius = "0.5rem"
+metricValueFontSize = "1.5rem"
+metricValueFontWeight = 500
+showWidgetBorder = true
+showSidebarBorder = true
+linkUnderline = false
+
+[theme.dark]
+primaryColor = "#8b93f8"
+backgroundColor = "#0f1013"
+secondaryBackgroundColor = "#1c1e24"
+textColor = "#ececef"
+borderColor = "#2a2c33"
+linkColor = "#a5acfb"
+codeBackgroundColor = "#1c1e24"
+dataframeHeaderBackgroundColor = "#16171b"
+dataframeBorderColor = "#2a2c33"
+
+[theme.dark.sidebar]
+backgroundColor = "#15161a"
+secondaryBackgroundColor = "#1f2127"
+borderColor = "#24262c"
+
+[theme.light]
+primaryColor = "#4f56d6"
+backgroundColor = "#fbfaf8"
+secondaryBackgroundColor = "#f0efeb"
+textColor = "#1d1e22"
+borderColor = "#e2e0db"
+linkColor = "#4048c8"
+codeBackgroundColor = "#f0efeb"
+dataframeHeaderBackgroundColor = "#f3f2ef"
+dataframeBorderColor = "#e2e0db"
+
+[theme.light.sidebar]
+backgroundColor = "#f3f2ef"
+secondaryBackgroundColor = "#e8e6e1"
+borderColor = "#e2e0db"
+
+[server]
+maxUploadSize = 20
+runOnSave = false
+
+[browser]
+gatherUsageStats = false
+
+[client]
+toolbarMode = "minimal"

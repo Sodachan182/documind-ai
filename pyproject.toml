@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "documind-ai"
+version = "1.0.0"
+description = "Document intelligence with Retrieval-Augmented Generation, Gemini, ChromaDB and verifiable citations."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.12"
+dependencies = [
+    "streamlit>=1.40",
+    "google-genai>=1.0",
+    "chromadb>=1.0",
+    "pymupdf>=1.24",
+    "python-docx>=1.1",
+    "pydantic>=2.7",
+    "python-dotenv>=1.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "ruff>=0.6", "reportlab>=4"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src", "."]
+markers = ["live: calls the real Gemini API (requires GEMINI_API_KEY; skipped otherwise)"]
+addopts = "-m 'not live'"
+filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF", "S"]
+ignore = ["RUF001", "RUF002", "RUF003", "S311", "SIM108", "SIM905"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "S105", "S106"]
+"demo/**" = ["S101"]
+"app.py" = ["E501"]
+"src/documind/ui/theme.py" = ["E501"]
