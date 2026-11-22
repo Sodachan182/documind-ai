@@ -44,7 +44,10 @@ Check each of: **1440×900**, **1366×768**, **1024×768**, **390×844** (mobile
 - Every icon-only button has a label/tooltip (`help=`).
 - Contrast ≥ 4.5:1 for body and metadata text, ≥ 3:1 for UI boundaries — check with the token table in
   `minimalist-chat-ui`. Verify both themes if light mode is enabled.
-- `prefers-reduced-motion: reduce` disables transitions.
+- DocuMind adds no motion of its own; with `prefers-reduced-motion: reduce` nothing custom animates, and
+  Streamlit's native behaviour is left intact.
+- Sidebar: collapse and expand on desktop and at ~400px; it must slide (not jump) and never squeeze the main
+  column (on narrow screens it overlays the content).
 
 ## 5. Rerun behaviour
 

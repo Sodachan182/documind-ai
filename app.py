@@ -18,7 +18,7 @@ st.set_page_config(
     page_title="DocuMind",
     page_icon=":material/description:",
     layout="centered",
-    initial_sidebar_state="auto",
+    initial_sidebar_state=260,  # native "auto" behaviour (smooth collapse, hidden on phones) at 260px
 )
 theme.inject()
 session.init_state()

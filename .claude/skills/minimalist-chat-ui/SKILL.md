@@ -76,7 +76,10 @@ an icon beside every label · trailing arrows on links · middle-dot metadata ch
 - Escape every user- or document-derived string inserted into HTML (`html.escape`).
 - Keep state in `st.session_state` with durable keys separate from widget keys (widgets on hidden pages are
   garbage-collected).
-- Respect `prefers-reduced-motion`; keep transitions ≤ 150ms and only on hover/focus.
+- Add no animations of our own beyond ≤ 150ms hover/focus feedback, wrapped in
+  `@media (prefers-reduced-motion: no-preference)`. Never disable Streamlit's motion globally
+  (`* { transition: none }`) and never force sidebar width with `!important`: both break the native
+  collapse/expand. Set the sidebar width with `st.set_page_config(initial_sidebar_state=<px>)`.
 
 ## Process
 

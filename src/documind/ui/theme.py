@@ -69,14 +69,11 @@ def css() -> str:
 /* Layout: one centred reading column. */
 [data-testid="stMainBlockContainer"] { max-width: 820px; padding-top: 2.25rem; padding-bottom: 2rem; }
 [data-testid="stBottomBlockContainer"] { max-width: 820px; }
-section[data-testid="stSidebar"] { width: 260px !important; min-width: 260px !important; }
 
 /* Accessibility */
 a:focus-visible, button:focus-visible, summary:focus-visible, [role="tab"]:focus-visible, [role="option"]:focus-visible {
   outline: 2px solid var(--dm-accent) !important; outline-offset: 2px; }
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
-}
+/* No custom animations: Streamlit's own motion (e.g. the sidebar slide) is left untouched. */
 
 /* Typography helpers */
 .dm-title { font-size: 1.375rem; font-weight: 600; letter-spacing: -0.01em; margin: 0 0 0.25rem; color: inherit; }
