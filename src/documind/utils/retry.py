@@ -13,8 +13,18 @@ RETRYABLE_STATUS = {408, 429, 500, 502, 503, 504}
 
 
 def status_code_of(exc: BaseException) -> int | None:
-    code = getattr(exc, "code", None) or getattr(exc, "status_code", None)
-    return code if isinstance(code, int) else None
+    """HTTP status of an SDK error.
+
+    openai/anthropic expose it as ``status_code`` and use ``code`` for a *string*
+    error code (e.g. "rate_limit_exceeded"); google-genai uses an integer ``code``.
+    """
+    for attr in ("status_code", "code"):
+        value = getattr(exc, attr, None)
+        if isinstance(value, int) and not isinstance(value, bool):
+            return value
+    response = getattr(exc, "response", None)
+    value = getattr(response, "status_code", None)
+    return value if isinstance(value, int) else None
 
 
 def is_retryable(exc: BaseException) -> bool:

@@ -517,3 +517,18 @@ def test_history_for_model_keeps_only_generated_answers() -> None:
         {"role": "user", "content": "q1"},
         {"role": "assistant", "content": "a1 [S1]"},
     ]
+
+
+def test_openai_style_errors_with_string_code_are_classified() -> None:
+    """openai/anthropic errors carry a *string* ``code``; the HTTP status is ``status_code``."""
+
+    class SDKError(Exception):
+        def __init__(self) -> None:
+            super().__init__("Error code: 429")
+            self.status_code = 429
+            self.code = "rate_limit_exceeded"
+            self.message = "The upstream is overloaded for this group"
+
+    state, message = classify_error(SDKError(), "connection check", "ShopAIKey")
+    assert state == "rate_limited" and "upstream is overloaded" in message
+    assert should_retry(SDKError())

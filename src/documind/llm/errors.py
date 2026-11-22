@@ -51,7 +51,17 @@ def _detail(exc: BaseException) -> str:
 
 
 def classify_error(exc: BaseException, operation: str = "request", provider: str = "Gemini") -> tuple[str, str]:
-    """Return ``(state, safe_message)`` for an SDK exception."""
+    """Return ``(state, safe_message)``; adds the service's own (redacted) reason when it gave one."""
+    state, message = _classify(exc, operation, provider)
+    if state in (TIMEOUT, CONNECTION_ERROR, BAD_REQUEST, ERROR):
+        return state, message
+    reason = redact(str(getattr(exc, "message", "") or "")).strip()
+    if reason:
+        message = f"{message} Service said: {reason[:180]}"
+    return state, message
+
+
+def _classify(exc: BaseException, operation: str, provider: str) -> tuple[str, str]:
     code = status_code_of(exc)
     detail = _detail(exc)
     low = detail.lower()
